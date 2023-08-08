@@ -1,0 +1,43 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  delete_latest_release:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v3
+      - name: delete latest release
+        uses: dev-drprasad/delete-tag-and-release@v0.2.1
+        with:
+          delete_release: true
+          tag_name: latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  build:
+    runs-on: ubuntu-latest
+    needs: delete_latest_release
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Android NDK
+      uses: nttld/setup-ndk@v1
+      with:
+        ndk-version: r25c
+        local-cache: true
+    - name: build
+      run: |
+        ndk-build
+    - name: update release
+      uses: ncipollo/release-action@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: latest
+        body: "fake invoke"
+        artifacts: "libs/armeabi-v7a/invoke_jni32,libs/arm64-v8a/invoke_jni64"
+        allowUpdates: true
+        replacesArtifacts: true
